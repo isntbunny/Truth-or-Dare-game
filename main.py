@@ -1,13 +1,16 @@
 import json
 import random
 import asyncio
+import os
+import uvicorn
 from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+# 第一步：先创建 app 实例
 app = FastAPI()
 
-# 跨域配置
+# 第二步：配置跨域
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -15,14 +18,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. 加载题目到内存
+# 第三步：加载题目
 try:
     with open("questions.json", "r", encoding="utf-8") as f:
         QUESTIONS = json.load(f)
 except FileNotFoundError:
     QUESTIONS = [{"id": 0, "content": "题目文件未找到，请检查后端配置"}]
 
-# 2. 管理连接
+# 第四步：管理连接
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -40,16 +43,15 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# 第五步：定义路由
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # 接收客户端消息
             data = await websocket.receive_json()
             user = data.get("user", "匿名玩家")
             
-            # 处理：掷骰子
             if data.get("action") == "roll":
                 point = random.randint(1, 6)
                 await manager.broadcast({
@@ -59,7 +61,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "val": point
                 })
             
-            # 处理：抽题
             elif data.get("action") == "draw":
                 q = random.choice(QUESTIONS)
                 await manager.broadcast({
@@ -69,7 +70,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "content": q['content']
                 })
 
-            # 处理：聊天
             elif data.get("action") == "chat":
                 await manager.broadcast({
                     "type": "chat",
@@ -80,14 +80,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-
-import os
-import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-# ... 保持之前的逻辑不变 ...
-
+# 第六步：最后放启动逻辑（必须放在最底部）
 if __name__ == "__main__":
-    # Koyeb 会自动注入 PORT 环境变量
     port = int(os.environ.get("PORT", 8000))
-    # 必须使用 0.0.0.0 才能让外部访问
     uvicorn.run(app, host="0.0.0.0", port=port)
