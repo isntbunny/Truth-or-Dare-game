@@ -1,88 +1,35 @@
-const API_BASE = localStorage.getItem('api_base') || '';
-
-const store = {
-  getUsers: () => JSON.parse(localStorage.getItem('tod_users') || '[]'),
-  setUsers: (users) => localStorage.setItem('tod_users', JSON.stringify(users)),
-  getRooms: () => JSON.parse(localStorage.getItem('tod_rooms') || '[]'),
-  setRooms: (rooms) => localStorage.setItem('tod_rooms', JSON.stringify(rooms)),
-};
-
-function seedLocalRooms() {
-  if (!store.getRooms().length) {
-    store.setRooms([
-      { id: 1, name: '欢乐局', description: '轻松聊天 + 真心话', created_by: 'system' },
-      { id: 2, name: '刺激大冒险', description: '适合勇士玩家', created_by: 'system' },
-      { id: 3, name: '深夜坦白局', description: '走心真心话专场', created_by: 'system' },
-    ]);
-  }
-}
-seedLocalRooms();
-
 const api = {
-  mode: 'backend',
-  async probe() {
-    try {
-      const res = await fetch(`${API_BASE}/api/rooms`);
-      if (!res.ok) throw new Error('backend unavailable');
-      this.mode = 'backend';
-    } catch {
-      this.mode = 'local';
-    }
-    document.getElementById('modeTip').textContent =
-      this.mode === 'backend' ? '当前模式：在线后端模式' : '当前模式：纯前端离线模式（无需后端，适合 Netlify）';
-  },
-  async getRooms(search = '') {
-    if (this.mode === 'backend') {
-      const res = await fetch(`${API_BASE}/api/rooms?search=${encodeURIComponent(search)}`);
-      return res.json();
-    }
-    const key = search.trim().toLowerCase();
-    const rooms = store.getRooms().filter((r) =>
-      !key || r.name.toLowerCase().includes(key) || (r.description || '').toLowerCase().includes(key)
-    );
-    return { rooms: rooms.sort((a, b) => b.id - a.id) };
+  async getRooms(search = "") {
+    const res = await fetch(`/api/rooms?search=${encodeURIComponent(search)}`);
+    return res.json();
   },
   async register(payload) {
-    if (this.mode === 'backend') {
-      const res = await fetch(`${API_BASE}/api/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error((await res.json()).detail || '注册失败');
-      return res.json();
-    }
-    const users = store.getUsers();
-    if (users.some((u) => u.username === payload.username)) throw new Error('用户名已存在');
-    users.push({ username: payload.username, password: payload.password, email: payload.email || null });
-    store.setUsers(users);
-    return { message: '注册成功，请登录' };
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '注册失败');
+    return res.json();
   },
   async login(payload) {
-    if (this.mode === 'backend') {
-      const res = await fetch(`${API_BASE}/api/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error((await res.json()).detail || '登录失败');
-      return res.json();
-    }
-    const user = store.getUsers().find((u) => u.username === payload.username && u.password === payload.password);
-    if (!user) throw new Error('用户名或密码错误');
-    return { username: user.username, token: `local_${user.username}_${Date.now()}` };
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '登录失败');
+    return res.json();
   },
-  async createRoom(token, payload, username) {
-    if (this.mode === 'backend') {
-      const res = await fetch(`${API_BASE}/api/rooms?token=${encodeURIComponent(token)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error((await res.json()).detail || '创建房间失败');
-      return res.json();
-    }
-    const rooms = store.getRooms();
-    if (rooms.some((r) => r.name === payload.name)) throw new Error('房间名已存在');
-    const room = { id: Date.now(), name: payload.name, description: payload.description || '', created_by: username };
-    rooms.push(room);
-    store.setRooms(rooms);
-    return room;
-  },
+  async createRoom(token, payload) {
+    const res = await fetch(`/api/rooms?token=${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '创建房间失败');
+    return res.json();
+  }
 };
 
 const roomList = document.getElementById('roomList');
@@ -91,12 +38,13 @@ const userTag = document.getElementById('userTag');
 const logoutBtn = document.getElementById('logoutBtn');
 const openLoginBtn = document.getElementById('openLoginBtn');
 const openRegisterBtn = document.getElementById('openRegisterBtn');
+
 const loginDialog = document.getElementById('loginDialog');
 const registerDialog = document.getElementById('registerDialog');
 
 const state = {
   token: localStorage.getItem('token') || '',
-  username: localStorage.getItem('username') || '',
+  username: localStorage.getItem('username') || ''
 };
 
 function syncUserUI() {
@@ -114,7 +62,8 @@ function renderRooms(rooms) {
     roomList.innerHTML = '<div class="room-card">暂无房间，快创建一个吧！</div>';
     return;
   }
-  rooms.forEach((room) => {
+
+  for (const room of rooms) {
     const card = document.createElement('div');
     card.className = 'room-card';
     card.innerHTML = `
@@ -122,12 +71,17 @@ function renderRooms(rooms) {
       <p class="room-meta">${room.description || '暂无描述'} · 创建者：${room.created_by}</p>
       <button class="primary-btn">进入房间</button>
     `;
+
     card.querySelector('button').onclick = () => {
-      if (!state.token) return loginDialog.showModal();
-      window.location.href = `./game.html?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}`;
+      if (!state.token) {
+        alert('请先登录再开始游戏');
+        loginDialog.showModal();
+        return;
+      }
+      window.location.href = `/game?roomId=${room.id}&roomName=${encodeURIComponent(room.name)}`;
     };
     roomList.appendChild(card);
-  });
+  }
 }
 
 async function loadRooms(search = '') {
@@ -136,19 +90,30 @@ async function loadRooms(search = '') {
 }
 
 document.getElementById('searchBtn').onclick = () => loadRooms(searchInput.value.trim());
-document.getElementById('refreshBtn').onclick = () => { searchInput.value = ''; loadRooms(''); };
+document.getElementById('refreshBtn').onclick = () => {
+  searchInput.value = '';
+  loadRooms('');
+};
 
 document.getElementById('createRoomBtn').onclick = async () => {
-  if (!state.token) return loginDialog.showModal();
+  if (!state.token) {
+    alert('请先登录后创建房间');
+    loginDialog.showModal();
+    return;
+  }
+
   const name = document.getElementById('roomName').value.trim();
   const description = document.getElementById('roomDesc').value.trim();
   if (!name) return alert('请输入房间名称');
+
   try {
-    await api.createRoom(state.token, { name, description }, state.username);
+    await api.createRoom(state.token, { name, description });
     document.getElementById('roomName').value = '';
     document.getElementById('roomDesc').value = '';
     await loadRooms();
-  } catch (e) { alert(e.message); }
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
 openLoginBtn.onclick = () => loginDialog.showModal();
@@ -168,14 +133,19 @@ document.getElementById('loginForm').onsubmit = async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
   try {
-    const data = await api.login({ username: form.get('username').trim(), password: form.get('password') });
+    const data = await api.login({
+      username: form.get('username').trim(),
+      password: form.get('password')
+    });
     state.token = data.token;
     state.username = data.username;
     localStorage.setItem('token', data.token);
     localStorage.setItem('username', data.username);
     syncUserUI();
     loginDialog.close();
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 };
 
 document.getElementById('registerForm').onsubmit = async (e) => {
@@ -185,16 +155,15 @@ document.getElementById('registerForm').onsubmit = async (e) => {
     await api.register({
       username: form.get('username').trim(),
       password: form.get('password'),
-      email: (form.get('email') || '').trim() || null,
+      email: (form.get('email') || '').trim() || null
     });
     registerDialog.close();
     alert('注册成功，请登录');
     loginDialog.showModal();
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    alert(err.message);
+  }
 };
 
-(async () => {
-  await api.probe();
-  syncUserUI();
-  loadRooms();
-})();
+syncUserUI();
+loadRooms();
