@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>真心话大冒险 - 房间大厅</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="banner">
+    <h1>🎉 真心话大冒险在线游玩</h1>
+    <div class="banner-actions">
+      <button id="openLoginBtn" class="ghost-btn">登录</button>
+      <button id="openRegisterBtn" class="primary-btn">注册</button>
+      <button id="logoutBtn" class="ghost-btn hidden">退出</button>
+      <span id="userTag" class="user-tag hidden"></span>
+    </div>
+  </header>
+
+  <section class="about">
+    <h2>关于作者</h2>
+    <p>Eucaly</p>
+    <p class="room-meta" id="modeTip"></p>
+  </section>
+
+  <main class="container">
+    <section class="search-section">
+      <input id="searchInput" type="text" placeholder="输入房间名或描述查找房间" />
+      <button id="searchBtn" class="primary-btn">搜索</button>
+      <button id="refreshBtn" class="ghost-btn">重置</button>
+    </section>
+
+    <section class="create-room">
+      <h3>创建新房间</h3>
+      <div class="create-row">
+        <input id="roomName" type="text" placeholder="房间名称" maxlength="30" />
+        <input id="roomDesc" type="text" placeholder="房间描述（可选）" maxlength="120" />
+        <button id="createRoomBtn" class="primary-btn">创建</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>所有房间</h3>
+      <div id="roomList" class="room-list"></div>
+    </section>
+  </main>
+
+  <footer class="footer">作者：Eucaly</footer>
+
+  <dialog id="loginDialog">
+    <form id="loginForm" method="dialog" class="dialog-form">
+      <h3>登录</h3>
+      <input name="username" placeholder="用户名" required />
+      <input name="password" type="password" placeholder="密码" required />
+      <div class="dialog-actions">
+        <button type="submit" class="primary-btn">登录</button>
+        <button type="button" class="ghost-btn" id="closeLogin">取消</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="registerDialog">
+    <form id="registerForm" method="dialog" class="dialog-form">
+      <h3>注册</h3>
+      <input name="username" placeholder="用户名" required />
+      <input name="password" type="password" placeholder="密码" required />
+      <input name="email" type="email" placeholder="邮箱（可选）" />
+      <div class="dialog-actions">
+        <button type="submit" class="primary-btn">注册</button>
+        <button type="button" class="ghost-btn" id="closeRegister">取消</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./index.js"></script>
+</body>
+</html>
